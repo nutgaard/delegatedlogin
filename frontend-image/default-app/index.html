@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delegated login frontend-image</title>
+    <link rel="stylesheet" href="/frontend/static/css/index.css">
+</head>
+<body>
+<h1>Delegated login frontend-image</h1>
+<p>
+    If this page is visible to you, then hopefully you've started this app during testing.
+    If not, then perhaps you've not added your frontend resources correctly.
+</p>
+<p>
+    <b>Example Dockerfile:</b>
+</p>
+<pre>
+FROM <YOUR LOGIN APP>
+# Add your build folder where your frontend resources are located
+COPY build /app
+</pre>
+
+<div>
+    This text is here to verify the loading of CSS.
+    Status: <span class="verifier">Green is OK. Anything else is bad.</span>
+</div>
+<p>
+    Environment variables &amp;{APP_NAME}: ${APP_NAME}
+</p>
+<p>
+    Environment variables &amp;{APP_DUMMY_SECRET}: ${APP_DUMMY_SECRET}
+</p>
+</body>
+</html>
