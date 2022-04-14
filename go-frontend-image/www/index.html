@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<h1>App root</h1>
+<pre id="api"></pre>
+</body>
+<script>
+    const append = (el, text) => {
+        el.innerText = `${el.innerText}\n${text}`;
+    }
+    const output = document.getElementById("api");
+    async function load() {
+        const response = await fetch('/modiapersonoversikt/self/hello');
+        append(output, `Url: ${response.status} ${response.url}`)
+        append(output, await response.text())
+    }
+    load();
+</script>
+</html>
