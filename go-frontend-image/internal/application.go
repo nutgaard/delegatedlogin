@@ -2,6 +2,8 @@ package internal
 
 import (
 	"fmt"
+	. "frontend-image/internal/config"
+	. "frontend-image/internal/server"
 )
 
 func StartApplication() {
@@ -15,6 +17,7 @@ func StartApplication() {
 
 	server := CreateServer(config)
 	server.SetupK8sRoutes(config)
+	server.SetupLoginRoutes(config)
 	server.SetupApiRoutes(config)
 	server.SetupProxyRoutes(
 		appPath,

@@ -1,4 +1,4 @@
-package internal
+package server
 
 import (
 	Trie "github.com/dghubble/trie"

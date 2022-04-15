@@ -1,7 +1,8 @@
-package internal
+package server
 
 import (
 	"fmt"
+	. "frontend-image/internal/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"path"

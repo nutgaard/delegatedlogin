@@ -1,4 +1,4 @@
-package internal
+package oidc
 
 import (
 	"encoding/json"

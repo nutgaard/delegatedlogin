@@ -1,6 +1,9 @@
-package internal
+package config
 
 import (
+	. "frontend-image/internal/oidc"
+	. "frontend-image/internal/resilience"
+	. "frontend-image/internal/server"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

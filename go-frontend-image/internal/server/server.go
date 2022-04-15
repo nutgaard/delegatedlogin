@@ -1,6 +1,8 @@
-package internal
+package server
 
 import (
+	. "frontend-image/internal/config"
+	. "frontend-image/internal/logging"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rs/zerolog/log"
