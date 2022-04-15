@@ -1,15 +1,11 @@
 package server
 
 import (
+	. "frontend-image/internal/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/proxy"
 	"strings"
 )
-
-type ProxyAppConfig struct {
-	Prefix string
-	Url    string
-}
 
 func (server *Server) SetupProxyRoutes(prefix string, config ...ProxyAppConfig) {
 	keySelector := func(app ProxyAppConfig) string { return app.Prefix }
