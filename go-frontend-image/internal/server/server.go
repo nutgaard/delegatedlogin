@@ -2,9 +2,7 @@ package server
 
 import (
 	. "frontend-image/internal/config"
-	. "frontend-image/internal/logging"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rs/zerolog/log"
 	"os"
 	"os/signal"
@@ -17,14 +15,10 @@ type Server struct {
 }
 
 func CreateServer(config *AppConfig) *Server {
-	server := fiber.New(fiber.Config{AppName: config.AppName})
-	server.Use(logger.New(logger.Config{
-		Output: CreateMaskingWriter(
-			"\\d{7,}",
-			"*",
-			os.Stdout,
-		),
-	}))
+	server := fiber.New(fiber.Config{
+		AppName:               config.AppName,
+		DisableStartupMessage: true,
+	})
 
 	setupGracefulShutdown(server)
 

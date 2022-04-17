@@ -6,7 +6,6 @@ import (
 )
 
 func main() {
-	// Only locally
 	SetupEnv()
 
 	StartApplication()

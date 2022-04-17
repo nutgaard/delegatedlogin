@@ -3,7 +3,6 @@ package config
 import (
 	. "frontend-image/internal/oidc"
 	. "frontend-image/internal/resilience"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -14,7 +13,6 @@ type AppData struct {
 }
 
 func LoadAndCreateServices() *AppData {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	config := getConfig()
 	oidcClient := getOidcClient(config)
 
@@ -27,7 +25,7 @@ func LoadAndCreateServices() *AppData {
 
 func getConfig() *AppConfig {
 	config := ReadConfig()
-	log.Info().Msgf("Loaded config: %v", config)
+	log.Info().Msgf("Loaded config: %s", config)
 	return config
 }
 

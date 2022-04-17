@@ -6,6 +6,7 @@ require (
 	github.com/caarlos0/env/v6 v6.9.1
 	github.com/dghubble/trie v0.0.0-20211002190126-ca25329b35c6
 	github.com/gofiber/fiber/v2 v2.31.0
+	github.com/google/uuid v1.1.1
 	github.com/rs/zerolog v1.26.1
 )
 
