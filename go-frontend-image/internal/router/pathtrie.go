@@ -1,4 +1,4 @@
-package server
+package router
 
 import (
 	Trie "github.com/dghubble/trie"
@@ -24,9 +24,9 @@ func (t *myPathTrie[T]) Search(path string) *T {
 	var out *T
 	var err error
 	err = t.WalkPath(path, func(key string, value interface{}) error {
-		casted, ok := value.(T)
+		casted, ok := value.(*T)
 		if ok {
-			out = &casted
+			out = casted
 		}
 		return nil
 	})
