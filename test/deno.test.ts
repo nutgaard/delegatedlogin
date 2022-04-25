@@ -23,11 +23,15 @@ Deno.test("oidc-stub provides jwks", async () => {
     assertEquals(jwks.body.keys.length, 1, "jwks has one key");
 });
 
-Deno.test('attempts to get frontend resource without trailing slash', async () => {
-    const initial = await fetchData('http://localhost:8083/frontend');
-    assertEquals(initial.statusCode, 301, '/frontend returns 301');
-    assertEquals(initial.redirectURI?.path, 'frontend/', 'appends trailing slash');
-});
+/**
+ * Trailing slash is handles by default. No redirect required
+ * Test should be rewritten to showcase loading of html with/without trailing slash
+ */
+// Deno.test('attempts to get frontend resource without trailing slash', async () => {
+//     const initial = await fetchData('http://localhost:8083/frontend');
+//     assertEquals(initial.statusCode, 301, '/frontend returns 301');
+//     assertEquals(initial.redirectURI?.path, 'frontend/', 'appends trailing slash');
+// });
 
 Deno.test('attempts to get frontend resource should result in login-flow', async () => {
     const initial = await fetchData('http://localhost:8083/frontend/');
@@ -144,31 +148,25 @@ Deno.test('missing static resource returns 404 instead of fallback to index.html
     assert(!staticResource.body.includes('<!DOCTYPE html>'), 'css-file is not HTML')
 });
 
-Deno.test('proxying to open endpoint when not logged in', async () => {
-    const openEndpointWithoutCookie = await fetchJson('http://localhost:8083/frontend/proxy/open-endpoint/data');
-    assertEquals(openEndpointWithoutCookie.statusCode, 200, '/frontend proxied to open endpoint');
-    assertEquals(openEndpointWithoutCookie.body.path, '/data', '/frontend removed url prefix');
-    assert(openEndpointWithoutCookie.body.headers['cookie'] === undefined, '/frontend did not send cookie');
-});
+/**
+ * Feature no longer supported.
+ * All request that are proxyied must be by an authenticated user
+ */
+// Deno.test('proxying to open endpoint when not logged in', async () => {
+//     const openEndpointWithoutCookie = await fetchJson('http://localhost:8083/frontend/proxy/open-endpoint/data');
+//     assertEquals(openEndpointWithoutCookie.statusCode, 200, '/frontend proxied to open endpoint');
+//     assertEquals(openEndpointWithoutCookie.body.path, '/data', '/frontend removed url prefix');
+//     assert(openEndpointWithoutCookie.body.headers['cookie'] === undefined, '/frontend did not send cookie');
+// });
 
 Deno.test('proxying to open endpoint when logged in', async () => {
     const tokens = await fetchJson('http://localhost:8080/oauth/token', {}, {});
     const openEndpointWithCookie = await fetchJson('http://localhost:8083/frontend/proxy/open-endpoint/data', {
-        'Cookie': tokens.body['id_token']
-    });
-    assertEquals(openEndpointWithCookie.statusCode, 200, '/frontend proxied to open endpoint');
-    assertEquals(openEndpointWithCookie.body.path, '/data', '/frontend removed url prefix');
-    assertExists(openEndpointWithCookie.body.headers['cookie'], '/frontend did send cookie');
-});
-
-Deno.test('proxying to open endpoint that removes cookie when logged in', async () => {
-    const tokens = await fetchJson('http://localhost:8080/oauth/token', {}, {});
-    const openEndpointWithCookie = await fetchJson('http://localhost:8083/frontend/proxy/open-endpoint-no-cookie/data', {
         'Cookie': `loginapp_ID_token=${tokens.body['id_token']};`
     });
     assertEquals(openEndpointWithCookie.statusCode, 200, '/frontend proxied to open endpoint');
     assertEquals(openEndpointWithCookie.body.path, '/data', '/frontend removed url prefix');
-    assert(openEndpointWithCookie.body.headers['cookie'] === undefined, '/frontend did not send cookie');
+    assertExists(openEndpointWithCookie.body.headers['cookie'], '/frontend did send cookie');
 });
 
 Deno.test('proxying to protected endpoint when not logged in', async () => {
@@ -192,6 +190,16 @@ Deno.test('proxying to protected endpoint when logged in', async () => {
     assert(protectedEndpoint.body.headers['cookie'].startsWith('loginapp_ID_token'), '/frontend sent loginapp_ID_token cookie');
 });
 
+Deno.test('proxying to open endpoint that removes cookie when logged in', async () => {
+    const tokens = await fetchJson('http://localhost:8080/oauth/token', {}, {});
+    const openEndpointWithCookie = await fetchJson('http://localhost:8083/frontend/proxy/open-endpoint-no-cookie/data', {
+        'Cookie': `loginapp_ID_token=${tokens.body['id_token']};`
+    });
+    assertEquals(openEndpointWithCookie.statusCode, 200, '/frontend proxied to open endpoint');
+    assertEquals(openEndpointWithCookie.body.path, '/data', '/frontend removed url prefix');
+    assert(openEndpointWithCookie.body.headers['cookie'] === undefined, '/frontend did not send cookie');
+});
+
 Deno.test('proxying to protected endpoint when logged in, and rewriting cookie name', async () => {
     const tokens = await fetchJson('http://localhost:8080/oauth/token', {}, {});
     const protectedEndpoint = await fetchJson('http://localhost:8083/frontend/proxy/protected-endpoint-with-cookie-rewrite/data', {
@@ -204,7 +212,10 @@ Deno.test('proxying to protected endpoint when logged in, and rewriting cookie n
 });
 
 Deno.test('environments variables are injected into nginx config', async () => {
-    const page = await fetchData('http://localhost:8083/frontend/env-data');
+    const tokens = await fetchJson('http://localhost:8080/oauth/token', {}, {});
+    const page = await fetchData('http://localhost:8083/frontend/env-data', {
+        'Cookie': `loginapp_ID_token=${tokens.body['id_token']};`
+    });
     assertEquals(page.body, 'APP_NAME: frontend', 'Page contains environmentvariable value')
 });
 
@@ -213,7 +224,7 @@ Deno.test('environments variables are injected into html config', async () => {
     const page = await fetchData('http://localhost:8083/frontend/', {
         'Cookie': `loginapp_ID_token=${tokens.body['id_token']};`
     });
-    assert(page.body.includes('&amp;{APP_NAME}: frontend'), 'Page contains environmentvariable value')
+    assert(page.body.includes('&#36;env{APP_NAME}: frontend'), 'Page contains environmentvariable value')
 });
 
 Deno.test('csp directive is added to request', async () => {

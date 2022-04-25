@@ -7,42 +7,27 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/rs/zerolog/log"
 	"time"
 )
 
-func createKeyPair() (jwk.RSAPrivateKey, jwk.RSAPublicKey, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	publicKey := &privateKey.PublicKey
-
-	jwkPrivateKey, err := jwk.New(privateKey)
-	if err != nil {
-		return nil, nil, err
-	}
-	jwkPublicKey, err := jwk.New(publicKey)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = jwkPublicKey.Set(jwk.KeyIDKey, uuid.New().String())
-	if err != nil {
-		return nil, nil, err
-	}
-	err = jwkPublicKey.Set(jwk.KeyUsageKey, "sig")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return jwkPrivateKey.(jwk.RSAPrivateKey), jwkPublicKey.(jwk.RSAPublicKey), nil
+func createJWKS() jwk.Set {
+	jwks := jwk.NewSet()
+	privateKey, _ := createRSAKey()
+	jwks.Add(privateKey)
+	return jwks
 }
 
-func createJWKS(key jwk.Key) jwk.Set {
-	jwks := jwk.NewSet()
-	jwks.Add(key)
-	return jwks
+func createRSAKey() (jwk.RSAPrivateKey, error) {
+	rsaPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey := jwk.NewRSAPrivateKey()
+	err = privateKey.Set(jwk.KeyIDKey, uuid.New().String())
+	err = privateKey.FromRaw(rsaPrivateKey)
+	return privateKey, err
 }
 
 func (context AppContext) createSignedJWT() string {
@@ -52,10 +37,11 @@ func (context AppContext) createSignedJWT() string {
 	_ = token.Set(jwt.SubjectKey, "Z999999")
 	_ = token.Set(jwt.IssuedAtKey, time.Now())
 	_ = token.Set(jwt.ExpirationKey, time.Now().Add(10*time.Minute))
+	key, _ := context.Jwks.Get(0)
 
-	signedToken, err := jwt.Sign(token, jwa.RS256, context.PrivateKey)
+	signedToken, err := jwt.Sign(token, jwa.RS256, key)
 	if err != nil {
-		panic("Could not create token")
+		log.Fatal().Err(err).Msg("Could not create token")
 	}
 
 	return string(signedToken)

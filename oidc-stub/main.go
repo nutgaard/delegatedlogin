@@ -4,28 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/rs/zerolog/log"
 	"net/http"
 )
 
 func main() {
+	var err error
 	port := "8080"
-	privateKey, publicKey, err := createKeyPair()
-	if err != nil {
-		log.Fatal().Msg(err.Error())
-	}
-
-	jwks := createJWKS(publicKey)
-	jwksJson, err := json.MarshalIndent(jwks, "", "  ")
+	jwks := createJWKS()
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
 
 	appContext := AppContext{
-		PublicKey:  publicKey,
-		PrivateKey: privateKey,
-		Jwks:       jwks,
-		JwksJson:   jwksJson,
+		Jwks: jwks,
 	}
 	log.Info().Msg(appContext.createSignedJWT())
 
@@ -42,10 +35,11 @@ func main() {
 }
 
 func (context AppContext) oidcHandler(w http.ResponseWriter, _ *http.Request) {
+	log.Info().Msg("200 GET /.well-known/openid-configuration")
 	w.Header().Set("Content-Type", "application/json")
 	err := json.NewEncoder(w).Encode(OIDCConfig{
-		Url:                   "http://oidc-stub:8080/.well-known/jwks.json",
-		TokenEndpoint:         "http://oidc-stub:8080/oauth/token",
+		Url:                   "http://localhost:8080/.well-known/jwks.json",
+		TokenEndpoint:         "http://localhost:8080/oauth/token",
 		AuthorizationEndpoint: "http://localhost:8080/authorize",
 		Issuer:                "stub",
 	})
@@ -56,8 +50,15 @@ func (context AppContext) oidcHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (context AppContext) jwksHandler(w http.ResponseWriter, _ *http.Request) {
+	log.Info().Msg("200 GET /.well-known/jwks.json")
 	w.Header().Set("Content-Type", "application/json")
-	_, err := w.Write(context.JwksJson)
+	publicKeys, err := jwk.PublicSetOf(context.Jwks)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+	jwksJson, _ := json.MarshalIndent(publicKeys, "", "  ")
+	_, err = w.Write(jwksJson)
 	if err != nil {
 		w.WriteHeader(500)
 		return
@@ -65,6 +66,7 @@ func (context AppContext) jwksHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (context AppContext) authorizationHandler(w http.ResponseWriter, r *http.Request) {
+	log.Info().Msg("200 GET /authorize")
 	redirectUri := r.URL.Query().Get("redirect_uri")
 	state := r.URL.Query().Get("state")
 	if len(redirectUri) == 0 {
@@ -81,6 +83,7 @@ func (context AppContext) authorizationHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (context AppContext) tokenHandler(w http.ResponseWriter, _ *http.Request) {
+	log.Info().Msg("200 GET /oauth/token")
 	w.Header().Set("Content-Type", "application/json")
 	err := json.NewEncoder(w).Encode(TokenExchangeResult{
 		IdToken:      context.createSignedJWT(),

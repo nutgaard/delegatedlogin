@@ -15,8 +15,5 @@ type TokenExchangeResult struct {
 }
 
 type AppContext struct {
-	PublicKey  jwk.RSAPublicKey
-	PrivateKey jwk.RSAPrivateKey
-	Jwks       jwk.Set
-	JwksJson   []byte
+	Jwks jwk.Set
 }

@@ -2,6 +2,7 @@ package router
 
 import (
 	. "frontend-image/internal/config"
+	"frontend-image/internal/proxy_directives"
 	Trie "github.com/dghubble/trie"
 	"github.com/rs/zerolog/log"
 	"net/http"
@@ -47,16 +48,38 @@ func createProxy(config ProxyAppConfig) *RewriteProxy {
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Invalid url format for proxy: %s", config.Url)
 	}
+
+	code, body := proxy_directives.ApplyRespondDirective(config.RewriteDirectives)
+	if code != 0 {
+		return &RewriteProxy{
+			ReverseProxy: &httputil.ReverseProxy{
+				Director: func(request *http.Request) {},
+				ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
+					writer.WriteHeader(code)
+					_, err = writer.Write([]byte(body))
+					if err != nil {
+						return
+					}
+				},
+			},
+			Prefix: config.Prefix,
+		}
+	}
+
 	proxy := httputil.NewSingleHostReverseProxy(uri)
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
-		req.Header.Set("authorization", "Bearer token")
 		req.Header["X-Forwarded-For"] = nil
+		req.Header.Set("authorization", "Bearer token")
+		proxy_directives.ApplyRequestDirectives(req, config.RewriteDirectives)
 	}
 	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
 		writer.WriteHeader(http.StatusBadGateway)
-		writer.Write([]byte(err.Error()))
+		_, err = writer.Write([]byte(err.Error()))
+		if err != nil {
+			return
+		}
 	}
 	return &RewriteProxy{
 		ReverseProxy: proxy,

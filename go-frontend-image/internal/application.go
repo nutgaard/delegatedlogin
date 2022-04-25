@@ -1,22 +1,23 @@
 package internal
 
 import (
-	"fmt"
 	. "frontend-image/internal/config"
+	copy_process "frontend-image/internal/copy-process"
 	"frontend-image/internal/router"
+	"frontend-image/internal/tmpl"
 	"github.com/rs/zerolog/log"
 )
 
 func StartApplication() {
 	appData := LoadAndCreateServices()
-	config := appData.Config
-	oidcClient := appData.OidcClient
-	if false {
-		fmt.Print(oidcClient) // Just to make it happy
-	}
+	log.Printf("Moving static resource to tmp folder in order to change them")
+	copy_process.CopyAndProcessFiles("./www", "/tmp/www", func(content []byte) []byte {
+		return []byte(tmpl.ReplaceVariableReferences(string(content), nil))
+	})
 
-	log.Printf("Starting application: %s (%s)", config.AppName, config.AppVersion)
+	log.Printf("Starting application: %s (%s)", appData.Config.AppName, appData.Config.AppVersion)
 
 	r := router.New(appData)
-	router.StartServer(config.Port, r)
+
+	router.StartServer(appData.Config.Port, r)
 }

@@ -69,5 +69,34 @@ func getProxyConfig() []ProxyAppConfig {
 			Prefix: "proxy/app2",
 			Url:    "http://localhost:8089/appname2",
 		},
+		{
+			Prefix: "proxy/open-endpoint",
+			Url:    "http://localhost:8089",
+		},
+		{
+			Prefix: "proxy/open-endpoint-no-cookie",
+			Url:    "http://localhost:8089",
+			RewriteDirectives: []string{
+				"SET_HEADER Cookie ''",
+			},
+		},
+		{
+			Prefix: "proxy/protected-endpoint",
+			Url:    "http://localhost:8089",
+		},
+		{
+			Prefix: "proxy/protected-endpoint-with-cookie-rewrite",
+			Url:    "http://localhost:8089",
+			RewriteDirectives: []string{
+				"SET_HEADER Cookie 'ID_token=$cookie{loginapp_ID_token}'",
+				"SET_HEADER Authorization '$cookie{loginapp_ID_token}'",
+			},
+		},
+		{
+			Prefix: "env-data",
+			RewriteDirectives: []string{
+				"RESPOND 200 'APP_NAME: $env{APP_NAME}'",
+			},
+		},
 	}
 }

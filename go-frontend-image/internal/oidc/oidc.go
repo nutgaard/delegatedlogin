@@ -1,9 +1,15 @@
 package oidc
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/jwx/v2/jws"
+	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type OidcClient struct {
@@ -11,6 +17,7 @@ type OidcClient struct {
 	clientId     string
 	clientSecret string
 	JwksConfig   *JwksConfig
+	keySet       jwk.Set
 }
 type JwksConfig struct {
 	JwksUri               string `json:"jwks_uri"`
@@ -80,16 +87,28 @@ func (client OidcClient) RefreshIdToken(refreshToken string) (*RefreshIdTokenRes
 	return result, nil
 }
 
+func (client OidcClient) Verify(token string) (jwt.Token, error) {
+	return jwt.Parse(
+		[]byte(token),
+		jwt.WithKeySet(client.keySet, jws.WithInferAlgorithmFromKey(true)),
+		jwt.WithAudience(client.clientId),
+		jwt.WithVerify(true),
+		jwt.WithValidate(true),
+	)
+}
+
 func CreateOidcClient(discoveryUrl, clientId, clientSecret string) (*OidcClient, error) {
 	jwksConfig, err := fetchConfig(discoveryUrl)
 	if err != nil {
 		return nil, err
 	}
+	keySet, err := fetchKeys(jwksConfig.JwksUri)
 	return &OidcClient{
 		discoveryUrl: discoveryUrl,
 		clientId:     clientId,
 		clientSecret: clientSecret,
 		JwksConfig:   jwksConfig,
+		keySet:       keySet,
 	}, nil
 }
 
@@ -112,4 +131,23 @@ func fetchConfig(discoveryUrl string) (*JwksConfig, error) {
 	}
 
 	return config, nil
+}
+
+func fetchKeys(keysUrl string) (jwk.Set, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cache := jwk.NewCache(ctx)
+	err := cache.Register(keysUrl, jwk.WithMinRefreshInterval(15*time.Minute))
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = cache.Refresh(ctx, keysUrl)
+	if err != nil {
+		log.Err(err).Msg("failed to refresh jwks")
+		return nil, err
+	}
+	set := jwk.NewCachedSet(cache, keysUrl)
+	return set, nil
 }

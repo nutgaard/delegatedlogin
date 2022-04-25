@@ -2,11 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title></title>
+    <title>Delegated login frontend-image</title>
+    <link rel="stylesheet" href="/frontend/static/css/index.css">
 </head>
 <body>
 <h1>App root</h1>
 <pre id="api"></pre>
+
+<div>
+    This text is here to verify the loading of CSS.
+    Status: <span class="verifier">Green is OK. Anything else is bad.</span>
+</div>
+<p>
+    Environment variables &#36;env{APP_NAME}: $env{APP_NAME}
+</p>
+<p>
+    Environment variables 	&#36;env{APP_DUMMY_SECRET}: $env{APP_DUMMY_SECRET}
+</p>
 </body>
 <script>
     const append = (el, text) => {
@@ -18,6 +30,6 @@
         append(output, `Url: ${response.status} ${response.url}`)
         append(output, await response.text())
     }
-    load();
+    // load();
 </script>
 </html>

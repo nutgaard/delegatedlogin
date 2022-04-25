@@ -25,30 +25,39 @@ func New(appData *config.AppData) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.CallIdMiddleware)
 	r.Use(chi_middleware.Recoverer)
+	r.Use(middleware.ReferrerMiddleware(appData.Config.ReferrerPolicy))
+	r.Use(middleware.CSPMiddleware(appData.Config.CspDirectives, appData.Config.CspReportOnly))
+	r.Use(middleware.LogEntryHandler(
+		logging.NewHttpLogger(appData.Config.AppName),
+	))
 
 	r.Route("/"+appData.Config.AppName, func(r chi.Router) {
-		r.Use(middleware.LogEntryHandler(
-			logging.NewHttpLogger(appData.Config.AppName),
-		))
-
-		r.Route("/oauth2", func(r chi.Router) {
-			r.Get("/login", handler.LoginRoute)
-			r.Get("/callback", handler.LoginRoute)
-			r.Get("/whoami", handler.LoginRoute)
+		// Public routes
+		r.Group(func(r chi.Router) {
+			r.Route("/internal", func(r chi.Router) {
+				r.Get("/isAlive", handler.IsAliveRoute)
+				r.Get("/isReady", handler.IsReadyRoute)
+				r.Get("/selftest", handler.SelftestRoute)
+			})
+			//r.Route("/oauth2", func(r chi.Router) {
+			//	r.Get("/login", handler.LoginRoute)
+			//	r.Get("/callback", handler.LoginRoute)
+			//	r.Get("/whoami", handler.LoginRoute)
+			//})
 		})
 
-		r.Route("/self", func(r chi.Router) {
-			r.Get("/hello", handler.HelloRoute)
-		})
+		// Private routes
+		r.Group(func(r chi.Router) {
+			authMiddlewares := middleware.CreateAuthMiddleware(appData)
+			r.Use(authMiddlewares.TokenExtraction)
+			r.Use(authMiddlewares.Authentication)
 
-		r.Route("/internal", func(r chi.Router) {
-			r.Get("/isAlive", handler.IsAliveRoute)
-			r.Get("/isReady", handler.IsReadyRoute)
-			r.Get("/selftest", handler.SelftestRoute)
+			//r.Route("/self", func(r chi.Router) {
+			//	r.Get("/hello", handler.HelloRoute)
+			//})
+			fileserver := createFileServer(r, "/"+appData.Config.AppName, http.Dir("/tmp/www"))
+			r.Handle("/*", handler.CreateProxyRoutes(fileserver))
 		})
-
-		fileserver := createFileServer(r, "/"+appData.Config.AppName, http.Dir("./www"))
-		r.Handle("/*", handler.CreateProxyRoutes(fileserver))
 	})
 
 	return r
