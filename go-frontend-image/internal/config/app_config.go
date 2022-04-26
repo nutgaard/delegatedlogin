@@ -13,13 +13,13 @@ type AppConfig struct {
 
 	IdpDiscoveryUrl   string        `env:"IDP_DISCOVERY_URL,notEmpty"`
 	IdpClientId       string        `env:"IDP_CLIENT_ID,notEmpty"`
-	IdpClientSecret   string        `env:"IDP_CLIENT_SECRET,notEmpty"`
+	IdpClientSecret   string        `env:"IDP_CLIENT_SECRET"`
 	IdpRetryCount     int           `env:"IDP_RETRY_COUNT" envDefault:"2"`
 	IdpRetryDelay     time.Duration `env:"IDP_RETRY_DELAY_MS" envDefault:"5s"`
 	DelegatedLoginUrl string        `env:"DELEGATED_LOGIN_URL,notEmpty"`
 
 	AuthTokenResolver    string `env:"AUTH_TOKEN_RESOLVER,notEmpty"`
-	RefreshTokenResolver string `env:"REFRESH_TOKEN_RESOLVER,notEmpty"`
+	RefreshTokenResolver string `env:"REFRESH_TOKEN_RESOLVER"`
 
 	ReferrerPolicy string `env:"REFERRER_POLICY" envDefault:"origin"`
 	CspDirectives  string `env:"CSP_DIRECTIVES" envDefault:"default-src 'self';"`
@@ -28,6 +28,7 @@ type AppConfig struct {
 	Port string `env:"EXPOSED_PORT" envDefault:"8083"`
 
 	WithoutSecurity bool `env:"WITHOUT_SECURITY" envDefault:"false"`
+	DockerCompose   bool `env:"DOCKER_COMPOSE" envDefault:"false"`
 }
 
 func SetupEnv() {
