@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	. "frontend-image/internal/oidc"
 	. "frontend-image/internal/resilience"
 	"github.com/rs/zerolog/log"
@@ -19,7 +20,7 @@ func LoadAndCreateServices() *AppData {
 	return &AppData{
 		Config:      config,
 		OidcClient:  oidcClient,
-		ProxyConfig: getProxyConfig(),
+		ProxyConfig: getProxyConfig(config.DockerCompose),
 	}
 }
 
@@ -55,38 +56,42 @@ func getOidcClient(config *AppConfig) *OidcClient {
 	return oidcClient
 }
 
-func getProxyConfig() []ProxyAppConfig {
+func getProxyConfig(dockerCompose bool) []ProxyAppConfig {
+	domain := "localhost:8089"
+	if dockerCompose {
+		domain = "echo-server"
+	}
 	return []ProxyAppConfig{
 		{
 			Prefix: "api",
-			Url:    "http://localhost:8089/modiapersonoversikt-api",
+			Url:    fmt.Sprintf("http://%s/modiapersonoversikt-api", domain),
 		},
 		{
 			Prefix: "proxy/app1",
-			Url:    "http://localhost:8089/appname1",
+			Url:    fmt.Sprintf("http://%s/appname1", domain),
 		},
 		{
 			Prefix: "proxy/app2",
-			Url:    "http://localhost:8089/appname2",
+			Url:    fmt.Sprintf("http://%s/appname2", domain),
 		},
 		{
 			Prefix: "proxy/open-endpoint",
-			Url:    "http://localhost:8089",
+			Url:    fmt.Sprintf("http://%s", domain),
 		},
 		{
 			Prefix: "proxy/open-endpoint-no-cookie",
-			Url:    "http://localhost:8089",
+			Url:    fmt.Sprintf("http://%s", domain),
 			RewriteDirectives: []string{
 				"SET_HEADER Cookie ''",
 			},
 		},
 		{
 			Prefix: "proxy/protected-endpoint",
-			Url:    "http://localhost:8089",
+			Url:    fmt.Sprintf("http://%s", domain),
 		},
 		{
 			Prefix: "proxy/protected-endpoint-with-cookie-rewrite",
-			Url:    "http://localhost:8089",
+			Url:    fmt.Sprintf("http://%s", domain),
 			RewriteDirectives: []string{
 				"SET_HEADER Cookie 'ID_token=$cookie{loginapp_ID_token}'",
 				"SET_HEADER Authorization '$cookie{loginapp_ID_token}'",
