@@ -49,6 +49,7 @@ func createProxy(config ProxyAppConfig) *RewriteProxy {
 		log.Fatal().Err(err).Msgf("Invalid url format for proxy: %s", config.Url)
 	}
 
+	proxy_directives.DescribeDirectives(config.RewriteDirectives)
 	code, body := proxy_directives.ApplyRespondDirective(config.RewriteDirectives)
 	if code != 0 {
 		return &RewriteProxy{
@@ -76,6 +77,7 @@ func createProxy(config ProxyAppConfig) *RewriteProxy {
 	}
 	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
 		writer.WriteHeader(http.StatusBadGateway)
+		log.Error().Err(err).Msgf("Could not proxy to %s", request.URL.String())
 		_, err = writer.Write([]byte(err.Error()))
 		if err != nil {
 			return

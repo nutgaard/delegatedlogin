@@ -1,9 +1,11 @@
 package proxy_directives
 
 import (
+	"fmt"
 	"frontend-image/internal/regexp_utils"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type RespondDirective struct {
@@ -15,16 +17,20 @@ func (d RespondDirective) CanHandle(str string) bool {
 	return respondDirective.MatchString(str)
 }
 
-func (d RespondDirective) Lex(str string) []string {
-	matches := regexp_utils.GetAllCaptureGroups(respondDirective, str)
-	return matches[1:]
-}
-
 func (d RespondDirective) Respond(str string) (int, string) {
-	lexed := regexp_utils.GetAllCaptureGroups(respondDirective, str)
-	lexed = lexed[1:]
+	lexed := d.lex(str)
 
 	code, _ := strconv.Atoi(lexed[1])
 	body := lexed[2]
 	return code, body
+}
+
+func (d RespondDirective) Describe(str string, sb *strings.Builder) {
+	code, body := d.Respond(str)
+	sb.WriteString(fmt.Sprintf("Respond with code %s and body: %s", code, body))
+}
+
+func (d RespondDirective) lex(str string) []string {
+	matches := regexp_utils.GetAllCaptureGroups(respondDirective, str)
+	return matches[1:]
 }

@@ -2,7 +2,9 @@ package proxy_directives
 
 import (
 	"frontend-image/internal/tmpl"
+	"github.com/rs/zerolog/log"
 	"net/http"
+	"strings"
 )
 
 /**
@@ -16,6 +18,7 @@ import (
 
 type HttpProxyDirective interface {
 	CanHandle(str string) bool
+	Describe(str string, builder *strings.Builder)
 }
 type HttpProxyRequestDirective interface {
 	HttpProxyDirective
@@ -61,4 +64,35 @@ func ApplyRespondDirective(directives []string) (int, string) {
 		}
 	}
 	return 0, ""
+}
+
+func DescribeDirectives(directives []string) {
+	for _, directive := range directives {
+		var sb strings.Builder
+		found := false
+		for _, handler := range directiveHandlers {
+			sb.WriteString("Directive: '")
+			sb.WriteString(directive)
+			sb.WriteString("'\n")
+			sb.WriteString("--------------------\n")
+
+			if handler.CanHandle(directive) {
+				handler.Describe(directive, &sb)
+				sb.WriteRune('\n')
+				found = true
+				break
+			}
+
+		}
+		if !found {
+			sb.WriteString("Could not find handler\n")
+		}
+
+		sb.WriteRune('\n')
+		if found {
+			log.Info().Msg(sb.String())
+		} else {
+			log.Warn().Msgf(sb.String())
+		}
+	}
 }
