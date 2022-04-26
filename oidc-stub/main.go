@@ -18,7 +18,8 @@ func main() {
 	}
 
 	appContext := AppContext{
-		Jwks: jwks,
+		Jwks:   jwks,
+		Config: loadConfig(),
 	}
 	log.Info().Msg(appContext.createSignedJWT())
 
@@ -37,9 +38,13 @@ func main() {
 func (context AppContext) oidcHandler(w http.ResponseWriter, _ *http.Request) {
 	log.Info().Msg("200 GET /.well-known/openid-configuration")
 	w.Header().Set("Content-Type", "application/json")
+	domain := "localhost"
+	if context.Config.DockerCompose {
+		domain = "oidc-stub"
+	}
 	err := json.NewEncoder(w).Encode(OIDCConfig{
-		Url:                   "http://localhost:8080/.well-known/jwks.json",
-		TokenEndpoint:         "http://localhost:8080/oauth/token",
+		Url:                   fmt.Sprintf("http://%s:8080/.well-known/jwks.json", domain),
+		TokenEndpoint:         fmt.Sprintf("http://%s:8080/oauth/token", domain),
 		AuthorizationEndpoint: "http://localhost:8080/authorize",
 		Issuer:                "stub",
 	})

@@ -6,12 +6,12 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY . .
-RUN go build -o docker-app
+RUN make build
 
 FROM gcr.io/distroless/base-debian10
 WORKDIR /
 
-COPY --from=build /app/docker-app /docker-app
+COPY --from=build /app/bin/delegated-login /docker-app
 
 EXPOSE 8082
 USER nonroot:nonroot

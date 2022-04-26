@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	ConfigLoader.SetupEnv()
+	//ConfigLoader.SetupEnv()
 
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
