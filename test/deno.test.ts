@@ -139,6 +139,43 @@ Deno.test('static resources returns 200 ok if logged in', async () => {
     assert(!staticResource.body.includes('<!DOCTYPE html>'), 'css-file is not HTML')
 });
 
+Deno.test('frontend routing should return index.html', async () => {
+    const tokens = await fetchJson('http://localhost:8080/oauth/token', {}, {});
+    const root = await fetchData('http://localhost:8083/frontend', {
+        'Cookie': `loginapp_ID_token=${tokens.body['id_token']};`
+    });
+    const rootTrailingSlash = await fetchData('http://localhost:8083/frontend/', {
+        'Cookie': `loginapp_ID_token=${tokens.body['id_token']};`
+    });
+    const path = await fetchData('http://localhost:8083/frontend/with/longer/path', {
+        'Cookie': `loginapp_ID_token=${tokens.body['id_token']};`
+    });
+    const pathTrailingSlash = await fetchData('http://localhost:8083/frontend/with/longer/path/', {
+        'Cookie': `loginapp_ID_token=${tokens.body['id_token']};`
+    });
+
+    assertEquals(root.statusCode, 200, '/frontend returns 200');
+    assert(root.body.includes('<!DOCTYPE html>'), '/frontend returns HTML');
+    assertEquals(rootTrailingSlash.statusCode, 200, '/frontend/ returns 200');
+    assert(rootTrailingSlash.body.includes('<!DOCTYPE html>'), '/frontend/ returns HTML');
+    assertEquals(path.statusCode, 200, '/frontend/with/longer/path returns 200');
+    assert(path.body.includes('<!DOCTYPE html>'), '/frontend/with/longer/path returns HTML');
+    assertEquals(pathTrailingSlash.statusCode, 200, '/frontend/with/longer/path/ returns 200');
+    assert(pathTrailingSlash.body.includes('<!DOCTYPE html>'), '/frontend/with/longer/path/ returns HTML');
+});
+
+Deno.test('frontend routing should return 302 if not logged in', async () => {
+    const root = await fetchData('http://localhost:8083/frontend');
+    const rootTrailingSlash = await fetchData('http://localhost:8083/frontend/');
+    const path = await fetchData('http://localhost:8083/frontend/with/longer/path');
+    const pathTrailingSlash = await fetchData('http://localhost:8083/frontend/with/longer/path/');
+
+    assertEquals(root.statusCode, 302, '/frontend returns 302');
+    assertEquals(rootTrailingSlash.statusCode, 302, '/frontend returns 302');
+    assertEquals(path.statusCode, 302, '/frontend returns 302');
+    assertEquals(pathTrailingSlash.statusCode, 302, '/frontend returns 302');
+});
+
 Deno.test('missing static resource returns 404 instead of fallback to index.html', async () => {
     const tokens = await fetchJson('http://localhost:8080/oauth/token', {}, {});
     const staticResource = await fetchData('http://localhost:8083/frontend/static/css/missing.css',{

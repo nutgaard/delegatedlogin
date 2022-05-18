@@ -8,6 +8,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -55,7 +58,7 @@ func New(appData *config.AppData) chi.Router {
 			//r.Route("/self", func(r chi.Router) {
 			//	r.Get("/hello", handler.HelloRoute)
 			//})
-			fileserver := createFileServer(r, "/"+appData.Config.AppName, http.Dir("/tmp/www"))
+			fileserver := createFileServer(r, "/"+appData.Config.AppName, "/tmp/www")
 			r.Handle("/*", handler.CreateProxyRoutes(fileserver))
 		})
 	})
@@ -63,20 +66,37 @@ func New(appData *config.AppData) chi.Router {
 	return r
 }
 
-func createFileServer(r chi.Router, path string, root http.FileSystem) http.HandlerFunc {
+func createFileServer(r chi.Router, path string, root string) http.HandlerFunc {
 	if strings.ContainsAny(path, "{}*") {
 		panic("Fileserver does not permit any URL parameters.")
 	}
+	rootFs := http.Dir(root)
 	if path != "/" && path[len(path)-1] != '/' {
 		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
-		path += "/"
 	}
-	path += "*"
+
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
+		fs := http.StripPrefix(pathPrefix, NotFoundHandler(root, http.FileServer(rootFs)))
 		fs.ServeHTTP(w, r)
 	}
 	return handler
+}
+
+func NotFoundHandler(root string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		file := root + request.URL.Path
+		ext := filepath.Ext(file)
+		if ext != "" {
+			next.ServeHTTP(writer, request)
+			return
+		}
+
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			http.ServeFile(writer, request, path.Join(root, "index.html"))
+			return
+		}
+		next.ServeHTTP(writer, request)
+	})
 }
